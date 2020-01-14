@@ -8,29 +8,43 @@ import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.TimeUtils;
 
 import java.util.Iterator;
 
+import sun.rmi.runtime.Log;
+
 
 public class MyGdxGame extends ApplicationAdapter {
 	private Texture dropImage;
 	private Texture bucketImage;
-	private Sound dropSound;
+	private Sound dropSound, gameOver,error;
 	private Music rainMusic;
 	private SpriteBatch batch;
 	private OrthographicCamera camera;
 	private Rectangle bucket;
 	private Array<Rectangle> raindrops;
 	private long lastDropTime;
+	SpriteBatch spriteBatch;
+	BitmapFont font;
+	int i=0;
+	CharSequence str = "Score: "+i;
+	int velocidadGota=200;
+	int gotasCaidas=0;
+
 
 	@Override
 	public void create() {
+		spriteBatch = new SpriteBatch();
+		font = new BitmapFont();
+
 		// load the images for the droplet and the bucket, 64x64 pixels each
 		dropImage = new Texture(Gdx.files.internal("gota.png"));
 		bucketImage = new Texture(Gdx.files.internal("cubo.png"));
@@ -38,6 +52,10 @@ public class MyGdxGame extends ApplicationAdapter {
 		// load the drop sound effect and the rain background "music"
 		dropSound = Gdx.audio.newSound(Gdx.files.internal("water.mp3"));
 		rainMusic = Gdx.audio.newMusic(Gdx.files.internal("rain.mp3"));
+		gameOver = Gdx.audio.newSound(Gdx.files.internal("gameOver.mp3"));
+		error = Gdx.audio.newSound(Gdx.files.internal("error.mp3"));
+
+
 
 		// start the playback of the background music immediately
 		rainMusic.setLooping(true);
@@ -68,10 +86,21 @@ public class MyGdxGame extends ApplicationAdapter {
 		raindrop.height = 64;
 		raindrops.add(raindrop);
 		lastDropTime = TimeUtils.nanoTime();
+
 	}
 
 	@Override
 	public void render() {
+		if(gotasCaidas==5){
+			//STOP GAME
+			//SHOW SCREEN GAME OVER
+			System.out.println("LOOOOOSER !");
+			gameOver.play();
+		}
+		if(i%10==0&&i>=10){
+			velocidadGota+=5;
+		}
+		str = "Score: "+i;
 		// clear the screen with a dark blue color. The
 		// arguments to glClearColor are the red, green
 		// blue and alpha component in the range [0,1]
@@ -94,6 +123,9 @@ public class MyGdxGame extends ApplicationAdapter {
 			batch.draw(dropImage, raindrop.x, raindrop.y);
 		}
 		batch.end();
+		spriteBatch.begin();
+		font.draw(spriteBatch, str, 720, 450);
+		spriteBatch.end();
 
 		// process user input
 		if(Gdx.input.isTouched()) {
@@ -117,12 +149,21 @@ public class MyGdxGame extends ApplicationAdapter {
 		// a sound effect as well.
 		for (Iterator<Rectangle> iter = raindrops.iterator(); iter.hasNext(); ) {
 			Rectangle raindrop = iter.next();
-			raindrop.y -= 200 * Gdx.graphics.getDeltaTime();
+			raindrop.y -= velocidadGota * Gdx.graphics.getDeltaTime();
 			if(raindrop.y + 64 < 0) iter.remove();
+
 			if(raindrop.overlaps(bucket)) {
 				dropSound.play();
+				i+=1;
 				iter.remove();
 			}
+			if(raindrop.y<=0){
+				System.out.println("gota abajo");
+				iter.remove();
+				gotasCaidas+=1;
+				error.play();
+			}
+
 		}
 	}
 
